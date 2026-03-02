@@ -12,6 +12,7 @@ RUN apk add --no-cache curl
 COPY --from=builder /app/index.html /usr/share/nginx/html/
 COPY --from=builder /app/style.css /usr/share/nginx/html/
 COPY --from=builder /app/app.js /usr/share/nginx/html/
+RUN chmod 644 /usr/share/nginx/html/*
 
 # Custom nginx config for SPA
 RUN echo 'server {' > /etc/nginx/conf.d/default.conf && \
