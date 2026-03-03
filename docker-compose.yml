@@ -1,17 +1,11 @@
-version: '3.8'
-
 services:
   sherlock-frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
     image: arturoalvarez/sherlock-frontend:latest
     container_name: sherlock-frontend
     ports:
       - "3012:80"
     networks:
       - sherlock-internal
-      - openclaw
     restart: unless-stopped
     environment:
       - API_URL=http://sherlock-backend:5000
@@ -19,22 +13,16 @@ services:
       - sherlock-backend
 
   sherlock-backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
     image: arturoalvarez/sherlock-backend:latest
     container_name: sherlock-backend
     ports:
       - "5000:5000"
     networks:
       - sherlock-internal
-      - openclaw
     restart: unless-stopped
     environment:
       - PYTHONUNBUFFERED=1
 
 networks:
-  openclaw:
-    external: true
   sherlock-internal:
     driver: bridge
