@@ -3,36 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sherlock | Username OSINT</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Sherlock | OSINT Tool</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0f;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+        }
+        h1 { color: #00ff88; font-size: 2.5em; margin-bottom: 10px; }
+        .subtitle { color: #888; margin-bottom: 30px; }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 400px;
+        }
+        input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #00ff88;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.05);
+            color: #fff;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 30px;
+            background: #00ff88;
+            color: #0a0a0f;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:disabled { opacity: 0.5; }
+        .loading {
+            color: #00ff88;
+            margin-bottom: 20px;
+        }
+        .results { width: 100%; max-width: 600px; }
+        .result-card {
+            background: rgba(0,255,136,0.1);
+            border: 1px solid #00ff88;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            display: block;
+            text-decoration: none;
+            color: #fff;
+        }
+        .platform-name { font-weight: bold; color: #00ff88; }
+        .username { opacity: 0.7; font-size: 0.9em; }
+        .summary { color: #00ff88; margin: 20px 0; font-size: 1.2em; }
+        .hidden { display: none !important; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>SHERLOCK</h1>
-            <p class="subtitle">Username Enumeration Tool</p>
-        </header>
-
-        <div class="search-box">
-            <input type="text" id="usernameInput" placeholder="username" autocomplete="off">
-            <button id="searchBtn" onclick="searchUsername()">BUSCAR</button>
-        </div>
-
-        <div id="loading" class="loading hidden">
-            <div class="spinner"></div>
-            <span class="loading-text">ESCANEANDO...</span>
-        </div>
-
-        <div id="results" class="results hidden">
-            <!-- Results will be populated by JS -->
-        </div>
-
-        <footer>
-            <p>OSINT Tool | ARM64 Ready</p>
-        </footer>
+    <h1>🔍 SHERLOCK</h1>
+    <p class="subtitle">Busca un username en múltiples plataformas</p>
+    
+    <div class="search-box">
+        <input type="text" id="username" placeholder="ej: github" autocomplete="off">
+        <button onclick="buscar()">Buscar</button>
     </div>
-
-    <canvas id="matrix"></canvas>
-    <script src="app.js"></script>
+    
+    <div id="loading" class="hidden">Buscando...</div>
+    <div id="resultados"></div>
+    
+    <script>
+        async function buscar() {
+            const input = document.getElementById('username');
+            const resultados = document.getElementById('resultados');
+            const loading = document.getElementById('loading');
+            
+            const username = input.value.trim();
+            if (!username) {
+                alert('Ingresa un username');
+                return;
+            }
+            
+            loading.classList.remove('hidden');
+            resultados.innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: username})
+                });
+                
+                const data = await response.json();
+                loading.classList.add('hidden');
+                
+                if (data.error) {
+                    resultados.innerHTML = '<p style="color: #ff4444;">Error: ' + data.error + '</p>';
+                    return;
+                }
+                
+                // Solo mostrar los que existen
+                const encontrados = data.results.filter(r => r.exists);
+                
+                if (encontrados.length === 0) {
+                    resultados.innerHTML = '<p>No se encontró el usuario en ninguna plataforma</p>';
+                    return;
+                }
+                
+                // Summary
+                resultados.innerHTML = '<div class="summary">✓ Encontrado en ' + encontrados.length + ' plataformas</div>';
+                
+                // Cards
+                encontrados.forEach(r => {
+                    const card = document.createElement('a');
+                    card.className = 'result-card';
+                    card.href = r.url;
+                    card.target = '_blank';
+                    card.innerHTML = '<div class="platform-name">' + r.platform + '</div><div class="username">@' + r.username + '</div>';
+                    resultados.appendChild(card);
+                });
+                
+            } catch (err) {
+                loading.classList.add('hidden');
+                resultados.innerHTML = '<p style="color: #ff4444;">Error de conexión</p>';
+            }
+        }
+        
+        document.getElementById('username').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') buscar();
+        });
+    </script>
 </body>
 </html>
